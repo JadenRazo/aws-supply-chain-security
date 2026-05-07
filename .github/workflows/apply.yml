@@ -1,0 +1,67 @@
+name: terraform-apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'apply or destroy'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - apply
+          - destroy
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    environment: aws-workloads-dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.14.9'
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials (mgmt OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: gha-${{ github.run_id }}
+
+      - name: Confirm mgmt identity
+        run: aws sts get-caller-identity
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform ${{ inputs.action }}
+        run: |
+          if [ "${{ inputs.action }}" = "destroy" ]; then
+            terraform destroy -input=false -auto-approve -no-color
+          else
+            terraform apply -input=false -auto-approve -no-color
+          fi
+
+      - name: Summarize outputs
+        if: inputs.action == 'apply'
+        run: |
+          {
+            echo "### Apply outputs"
+            echo ''
+            echo '```'
+            terraform output
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
