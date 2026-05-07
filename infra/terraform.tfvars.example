@@ -1,0 +1,7 @@
+home_region         = "us-west-2"
+ecr_repository_name = "supply-chain-demo"
+notification_email  = "you@example.com"
+severity_threshold  = "HIGH"
+log_retention_days  = 7
+owner_tag           = "jadenrazo"
+mgmt_account_id     = "569239324174"
