@@ -10,6 +10,14 @@ on:
       tag:
         description: 'Tag to push to ECR (default: short SHA of this run)'
         required: false
+      mode:
+        description: 'gate = fail-build at HIGH+ (production default); demo = scan+report only, sign+verify still run'
+        required: true
+        default: 'gate'
+        type: choice
+        options:
+          - gate
+          - demo
   push:
     branches: [main]
     paths:
@@ -116,7 +124,7 @@ jobs:
           image: ${{ steps.tag.outputs.uri }}:${{ steps.tag.outputs.tag }}
           severity-cutoff: high
           only-fixed: true
-          fail-build: true
+          fail-build: ${{ inputs.mode != 'demo' }}
           output-format: sarif
 
       - name: Upload SARIF to GitHub code scanning
@@ -160,4 +168,5 @@ jobs:
             echo "| Vuln scan | grype, fail-at HIGH+ |"
             echo "| Signature | keyless cosign, verified against workflow OIDC identity |"
             echo "| Source | \`${SOURCE_REPO}@${{ inputs.source_ref || 'main' }}\` |"
+            echo "| Mode | \`${{ inputs.mode || 'gate' }}\` (gate = fail-build at HIGH+; demo = report-only) |"
           } >> "$GITHUB_STEP_SUMMARY"
