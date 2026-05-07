@@ -1,0 +1,4 @@
+=== cosign tree (Sigstore Rekor entries for the image) ===
+📦 Supply Chain Security Related artifacts for an image: 422783588447.dkr.ecr.us-west-2.amazonaws.com/supply-chain-demo@sha256:011962ee1a8df6069e45cddb1adec755c0fe3a6aaf7bbea4f78a1f37f015af41
+└── 🔐 Signatures for an image tag: 422783588447.dkr.ecr.us-west-2.amazonaws.com/supply-chain-demo:sha256-011962ee1a8df6069e45cddb1adec755c0fe3a6aaf7bbea4f78a1f37f015af41.sig
+   └── 🍒 sha256:748704338e5f02b6e1901265ea598ff5dd6aae8637e130cc87fe592c6014a36b

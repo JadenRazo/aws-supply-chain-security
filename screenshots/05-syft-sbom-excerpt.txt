@@ -1,0 +1,66 @@
+=== syft SBOM (SPDX-JSON) excerpt — full file is 2.3MB and uploaded as workflow artifact ===
+
+--- Document metadata ---
+{
+  "spdxVersion": "SPDX-2.3",
+  "name": "422783588447.dkr.ecr.us-west-2.amazonaws.com/supply-chain-demo",
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://anchore.com/syft/image/422783588447.dkr.ecr.us-west-2.amazonaws.com/supply-chain-demo-4e7f5037-9d17-475a-984f-510209265b12",
+  "creationInfo": {
+    "licenseListVersion": "3.28",
+    "creators": [
+      "Organization: Anchore, Inc",
+      "Tool: syft-1.42.3"
+    ],
+    "created": "2026-05-07T17:07:01Z"
+  },
+  "packageCount": 105
+}
+
+--- First 5 packages ---
+{
+  "name": "Simple Launcher",
+  "versionInfo": "1.1.0.14",
+  "licenseConcluded": "NOASSERTION",
+  "supplier": "Organization: Simple Launcher User",
+  "downloadLocation": "NOASSERTION"
+}
+{
+  "name": "Simple Launcher",
+  "versionInfo": "1.1.0.14",
+  "licenseConcluded": "NOASSERTION",
+  "supplier": "Organization: Simple Launcher User",
+  "downloadLocation": "NOASSERTION"
+}
+{
+  "name": "Simple Launcher",
+  "versionInfo": "1.1.0.14",
+  "licenseConcluded": "NOASSERTION",
+  "supplier": "Organization: Simple Launcher User",
+  "downloadLocation": "NOASSERTION"
+}
+{
+  "name": "Simple Launcher",
+  "versionInfo": "1.1.0.14",
+  "licenseConcluded": "NOASSERTION",
+  "supplier": "Organization: Simple Launcher User",
+  "downloadLocation": "NOASSERTION"
+}
+{
+  "name": "Simple Launcher",
+  "versionInfo": "1.1.0.14",
+  "licenseConcluded": "NOASSERTION",
+  "supplier": "Organization: Simple Launcher User",
+  "downloadLocation": "NOASSERTION"
+}
+
+--- Total package count + license summary ---
+{
+  "total_packages": 105,
+  "unique_licenses": [
+    "BSD-3-Clause",
+    "LicenseRef-5a5e7ca0e9f3f9679977e3a3e9ede45ad92885a3297ea78e766979f9866c5a16",
+    "MIT",
+    "NOASSERTION"
+  ]
+}

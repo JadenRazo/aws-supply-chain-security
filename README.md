@@ -28,6 +28,16 @@ Container supply-chain security on AWS — every image that leaves CI is **SBOM-
 
 Build → SBOM → scan → sign → push → verify, all from one workflow. Scan results feed an alerting path that's cleanly decoupled from the build:
 
+| Workflow result | Where to look |
+|---|---|
+| Pipeline running end-to-end (sign + verify) — supply-chain run #6 | `screenshots/01-workflow-success.png` |
+| Deploy gate firing (grype HIGH+ refused the push) — supply-chain run #2 | `screenshots/01b-workflow-gate-fail.png` |
+| `cosign verify` output, run locally against the pushed image | `screenshots/02-cosign-verify-cli.txt` |
+| `cosign tree` showing Sigstore Rekor entry attached to the image | `screenshots/02b-cosign-tree.txt` |
+| ECR scan + image artifacts (image + co-located signature tag) | `screenshots/03-ecr-scan-cli.txt` |
+| Syft SBOM metadata, package count, license summary | `screenshots/05-syft-sbom-excerpt.txt` |
+| Synthetic Lambda invocation script (use after confirming SNS subscription) | `screenshots/04-trigger-sns-test.sh` |
+
 ```
 GitHub Actions (build/scan/sign)  ──►  Sigstore Fulcio + Rekor  (signing + log)
                                   ──►  ECR (push image + .sig)
@@ -49,6 +59,15 @@ ECR scan-on-push  ──►  EventBridge  ──►  Lambda  ──►  SNS  ─
 | **Total** | | **~$0** |
 
 ---
+
+## Run modes
+
+The supply-chain workflow takes a `mode` input that controls the deploy gate:
+
+- `gate` (default): grype with `severity-cutoff: high, only-fixed: true, fail-build: true`. HIGH+ vulnerabilities with available fixes break the build before push. **This is the production setting.**
+- `demo`: same scan, same SARIF upload, but `fail-build: false` so the pipeline continues to sign + verify even when the source has known fixable vulns. Used when demonstrating the full sign-and-verify path or when consciously accepting risk on a deadline.
+
+Mode is recorded in the `$GITHUB_STEP_SUMMARY` of every run.
 
 ## Smoke test
 

@@ -1,0 +1,24 @@
+{
+  "version": "0",
+  "id": "TEST-EVENT-synthetic-high-findings",
+  "detail-type": "ECR Image Scan",
+  "source": "aws.ecr",
+  "account": "422783588447",
+  "time": "2026-05-07T17:00:00Z",
+  "region": "us-west-2",
+  "resources": [
+    "arn:aws:ecr:us-west-2:422783588447:repository/supply-chain-demo"
+  ],
+  "detail": {
+    "scan-status": "COMPLETE",
+    "repository-name": "supply-chain-demo",
+    "image-digest": "sha256:011962ee1a8df6069e45cddb1adec755c0fe3a6aaf7bbea4f78a1f37f015af41",
+    "image-tags": ["1d249d6"],
+    "finding-severity-counts": {
+      "CRITICAL": 2,
+      "HIGH": 5,
+      "MEDIUM": 17,
+      "LOW": 33
+    }
+  }
+}
