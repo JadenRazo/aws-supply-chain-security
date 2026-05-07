@@ -1,0 +1,158 @@
+name: supply-chain
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: 'Ref of sre-reference-app to build (branch, tag, or SHA)'
+        required: false
+        default: 'main'
+      tag:
+        description: 'Tag to push to ECR (default: short SHA of this run)'
+        required: false
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/supply-chain.yml'
+
+permissions:
+  id-token: write
+  contents: read
+  security-events: write
+
+concurrency:
+  group: supply-chain-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SOURCE_REPO: JadenRazo/sre-reference-app
+  WORKLOADS_DEV_ACCOUNT_ID: '422783588447'
+
+jobs:
+  build-sign-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Checkout source app (sre-reference-app)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOURCE_REPO }}
+          ref: ${{ inputs.source_ref || 'main' }}
+          path: source
+
+      - name: Configure AWS credentials (mgmt OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: gha-${{ github.run_id }}
+
+      - name: Chain into workloads-dev
+        id: assume_dev
+        run: |
+          set -euo pipefail
+          CREDS=$(aws sts assume-role \
+            --role-arn "arn:aws:iam::${WORKLOADS_DEV_ACCOUNT_ID}:role/OrganizationAccountAccessRole" \
+            --role-session-name "supply-chain-${{ github.run_id }}" \
+            --duration-seconds 3600 \
+            --output json)
+          {
+            echo "AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r .Credentials.AccessKeyId)"
+            echo "AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r .Credentials.SecretAccessKey)"
+            echo "AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r .Credentials.SessionToken)"
+          } >> "$GITHUB_ENV"
+
+      - name: Confirm workloads-dev identity
+        run: aws sts get-caller-identity
+
+      - name: Login to ECR (workloads-dev)
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Compute image tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "uri=${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (local load — pre-scan)
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: source/app
+          file: source/app/Dockerfile
+          load: true
+          push: false
+          tags: ${{ steps.tag.outputs.uri }}:${{ steps.tag.outputs.tag }}
+
+      - name: Generate SBOM (syft, SPDX JSON)
+        id: sbom
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.tag.outputs.uri }}:${{ steps.tag.outputs.tag }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: true
+          upload-artifact-retention: 30
+
+      - name: Vulnerability scan (grype, fail at HIGH+)
+        id: scan
+        uses: anchore/scan-action@v3
+        with:
+          image: ${{ steps.tag.outputs.uri }}:${{ steps.tag.outputs.tag }}
+          severity-cutoff: high
+          fail-build: true
+          output-format: sarif
+
+      - name: Upload SARIF to GitHub code scanning
+        if: always() && steps.scan.outputs.sarif != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+          category: grype
+
+      - name: Push image to ECR
+        run: |
+          docker push "${{ steps.tag.outputs.uri }}:${{ steps.tag.outputs.tag }}"
+          DIGEST=$(docker inspect "${{ steps.tag.outputs.uri }}:${{ steps.tag.outputs.tag }}" \
+            --format '{{ index .RepoDigests 0 }}' | cut -d@ -f2)
+          echo "DIGEST=${DIGEST}" >> "$GITHUB_ENV"
+          echo "IMAGE_REF=${{ steps.tag.outputs.uri }}@${DIGEST}" >> "$GITHUB_ENV"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image (keyless OIDC)
+        run: |
+          cosign sign --yes "${IMAGE_REF}"
+
+      - name: Verify signature
+        run: |
+          cosign verify "${IMAGE_REF}" \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/\.github/workflows/supply-chain\.yml@.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Supply chain pipeline"
+            echo ''
+            echo "| Step | Result |"
+            echo "|---|---|"
+            echo "| Image | \`${IMAGE_REF:-(failed before push)}\` |"
+            echo "| SBOM | uploaded as artifact (\`sbom.spdx.json\`) |"
+            echo "| Vuln scan | grype, fail-at HIGH+ |"
+            echo "| Signature | keyless cosign, verified against workflow OIDC identity |"
+            echo "| Source | \`${SOURCE_REPO}@${{ inputs.source_ref || 'main' }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
