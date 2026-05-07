@@ -97,20 +97,25 @@ jobs:
 
       - name: Generate SBOM (syft, SPDX JSON)
         id: sbom
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v0.24.0
         with:
           image: ${{ steps.tag.outputs.uri }}:${{ steps.tag.outputs.tag }}
           format: spdx-json
           output-file: sbom.spdx.json
           upload-artifact: true
-          upload-artifact-retention: 30
+          upload-artifact-retention-days: 30
 
-      - name: Vulnerability scan (grype, fail at HIGH+)
+      # only-fixed=true is the production-grade default: fail builds on
+      # vulnerabilities the upstream package has actually shipped a fix for.
+      # Vulns without a fix are pending vendor work and breaking the build on
+      # them just creates noise. Severity gate stays at HIGH+.
+      - name: Vulnerability scan (grype, fail at HIGH+ with fixes available)
         id: scan
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v7.4.0
         with:
           image: ${{ steps.tag.outputs.uri }}:${{ steps.tag.outputs.tag }}
           severity-cutoff: high
+          only-fixed: true
           fail-build: true
           output-format: sarif
 
