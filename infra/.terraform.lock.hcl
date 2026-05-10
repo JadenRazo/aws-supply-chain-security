@@ -3,9 +3,19 @@
 
 provider "registry.terraform.io/hashicorp/archive" {
   version     = "2.7.1"
-  constraints = "~> 2.4"
+  constraints = "~> 2.7"
   hashes = [
     "h1:62VrkalDPMKB9zerCBS4iKTbvxejwnAWn/XXYZZQWD4=",
+    "h1:A7EnRBVm4h9ryO9LwxYnKr4fy7ExPMwD5a1DsY7m1Y0=",
+    "h1:MwZ8uhTOmj3W8wiMeitCnzuf+897qka4/NBIAWFrm+k=",
+    "h1:PEKRqEq1rTBFsMbF1xUZl0u7azMaof2E6CXlfr8bO0U=",
+    "h1:RzToQiFwVaxcV0QmgbyaKgNOhqc6oLKiFyZTrQSGcog=",
+    "h1:S/KV+jvHSV3IXpPQTLuHM2TY/IngyATETTlu6z/OgeI=",
+    "h1:Tr6LvLbm30zX4BRNPHhXo8SnOP0vg5UKAeunRNfnas8=",
+    "h1:V06qsFIjiwmVwSwW+BwzEKM9FbRlMseUlRf9ICf3F2M=",
+    "h1:mm0mWKRAp9q8BWLQy2vQmtM/7ZeW2yv535EO+3hv64w=",
+    "h1:p2c9KtOcpg/x02Cr9qRF62kb8kJ/sezqHfcHcVEGCnc=",
+    "h1:uYtJFt+/kaBwGkjASCGERPXIdonvZJdtAUwsqkG1EEQ=",
     "zh:19881bb356a4a656a865f48aee70c0b8a03c35951b7799b6113883f67f196e8e",
     "zh:2fcfbf6318dd514863268b09bbe19bfc958339c636bcbcc3664b45f2b8bf5cc6",
     "zh:3323ab9a504ce0a115c28e64d0739369fe85151291a2ce480d51ccbb0c381ac5",
