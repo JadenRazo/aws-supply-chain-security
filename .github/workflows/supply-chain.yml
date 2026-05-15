@@ -95,7 +95,7 @@ jobs:
 
       - name: Build image (local load — pre-scan)
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: source/app
           file: source/app/Dockerfile
