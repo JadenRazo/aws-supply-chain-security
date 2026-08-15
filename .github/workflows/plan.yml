@@ -21,16 +21,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
-          terraform_version: '1.14.9'
+          terraform_version: '1.15.8'
           terraform_wrapper: false
 
       - name: Configure AWS credentials (mgmt OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -60,13 +60,20 @@ jobs:
 
       - name: Comment plan on PR
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
+        # The plan text reaches the script through an env var, never through
+        # `${{ }}` interpolation into the script body. Interpolating it inline
+        # splices plan output into the program as JavaScript *source*: a plan
+        # containing a bare identifier such as `data` crashes the step with
+        # "ReferenceError: data is not defined", and anything that can influence
+        # plan text can influence the code that runs. This is the untrusted-input
+        # class documented at
+        # https://securitylab.github.com/research/github-actions-untrusted-input/
+        env:
+          PLAN_OUTPUT: ${{ steps.plan.outputs.plan }}
         with:
           script: |
-            const output = `### Terraform Plan
-            \`\`\`hcl
-            ${{ steps.plan.outputs.plan }}
-            \`\`\``;
+            const output = `### Terraform Plan\n\`\`\`hcl\n${process.env.PLAN_OUTPUT}\n\`\`\``;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
