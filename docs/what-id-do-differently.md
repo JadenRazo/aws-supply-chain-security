@@ -10,7 +10,7 @@ A central registry account is the standard pattern: one place to enforce signing
 
 ## 2. SBOM lives as a workflow artifact. It should be a cosign **attestation** alongside the signature.
 
-`anchore/sbom-action@v0` uploads `sbom.spdx.json` as a GitHub-side artifact with 30-day retention. That's findable but not durable, not signed, and not co-located with the image.
+The pinned `anchore/sbom-action` release uploads `sbom.spdx.json` as a GitHub-side artifact with 30-day retention. That's findable but not durable, not signed, and not co-located with the image.
 
 **The right shape**: `cosign attest --predicate sbom.spdx.json --type spdxjson <image>`. That puts the SBOM in Rekor as a signed predicate, attached to the same image digest the signature covers. Verification in the pull path becomes `cosign verify-attestation --type spdxjson` — and downstream tooling like `grype attestation:` can consume the signed SBOM directly without re-pulling the image.
 
@@ -56,9 +56,13 @@ I left the explicit variable as an escape hatch in case the SSM param is unavail
 
 GitHub's `actions/attest-build-provenance@v1` automates the bulk of this. Adding it to v2 of this project gives a `provenance.intoto.jsonl` artifact in Rekor and unlocks SLSA Level 3 verification at the consumer.
 
-## 9. Source image is checked out at `main` by default. It should pin to a SHA.
+## 9. Source image pinning is fixed; upstream base-image provenance remains
 
-`actions/checkout@v4` of `JadenRazo/sre-reference-app` defaults to `main`. That makes the build non-reproducible — `main` moves. Production builds should pin to a SHA, captured in the SLSA provenance, and the workflow's `inputs.source_ref` should default to a known-good SHA. I kept `main` because the project's narrative is "always sign the latest of the source app I deploy"; in real systems the latest-SHA pin lives upstream.
+The workflow now rejects moving branch names and requires a full 40-character
+`sre-reference-app` commit SHA. It derives the ECR image tag from that source
+SHA and records the exact material in the run summary. The remaining production
+gap is the Dockerfile's upstream base-image digest and a signed SLSA provenance
+statement that ties both inputs to the built image.
 
 ## 10. No retry / DLQ on the Lambda.
 

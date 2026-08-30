@@ -14,12 +14,8 @@ import logging
 import os
 from typing import Any
 
-import boto3
-
 LOG = logging.getLogger()
 LOG.setLevel(logging.INFO)
-
-sns = boto3.client("sns")
 
 SEVERITY_ORDER = ["INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
@@ -54,6 +50,21 @@ def _format_message(detail: dict[str, Any], region: str) -> tuple[str, str]:
     return subject[:100], body
 
 
+def _publish(topic_arn: str, subject: str, body: str) -> dict[str, Any]:
+    """Publish through the Lambda-runtime boto3 dependency.
+
+    Keeping the SDK import at the I/O boundary makes the deterministic parsing
+    and policy logic testable without network access or a vendored AWS SDK.
+    """
+    import boto3
+
+    return boto3.client("sns").publish(
+        TopicArn=topic_arn,
+        Subject=subject,
+        Message=body,
+    )
+
+
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     LOG.info("event=%s", json.dumps(event))
 
@@ -61,7 +72,9 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     counts = detail.get("finding-severity-counts", {}) or {}
     threshold = os.environ.get("SEVERITY_THRESHOLD", "HIGH")
     region = os.environ.get("ECR_CONSOLE_REGION", "us-west-2")
-    topic_arn = os.environ["SNS_TOPIC_ARN"]
+
+    if threshold not in SEVERITY_ORDER:
+        raise ValueError(f"unsupported SEVERITY_THRESHOLD: {threshold}")
 
     above_threshold_total = sum(
         n for sev, n in counts.items() if sev in SEVERITY_ORDER and _at_or_above(sev, threshold)
@@ -78,7 +91,8 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         return {"published": False, "reason": "below_threshold", "counts": counts}
 
     subject, body = _format_message(detail, region)
-    response = sns.publish(TopicArn=topic_arn, Subject=subject, Message=body)
+    topic_arn = os.environ["SNS_TOPIC_ARN"]
+    response = _publish(topic_arn, subject, body)
     LOG.info(
         "scan_alert_published message_id=%s repo=%s above_threshold_total=%d",
         response.get("MessageId"),
