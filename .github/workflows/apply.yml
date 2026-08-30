@@ -11,6 +11,10 @@ on:
         options:
           - apply
           - destroy
+      confirmation:
+        description: 'Type workloads-dev after reviewing the target account and action'
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -18,6 +22,7 @@ permissions:
 
 jobs:
   apply:
+    if: inputs.confirmation == 'workloads-dev'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -26,16 +31,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
-          terraform_version: '1.14.9'
+          terraform_version: '1.15.8'
           terraform_wrapper: false
 
       - name: Configure AWS credentials (mgmt OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}

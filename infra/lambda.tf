@@ -2,6 +2,7 @@ data "archive_file" "scan_findings_handler" {
   type        = "zip"
   source_dir  = "${path.module}/lambda"
   output_path = "${path.module}/.build/scan_findings_handler.zip"
+  excludes    = ["tests"]
 }
 
 resource "aws_iam_role" "scan_findings" {
