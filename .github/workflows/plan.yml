@@ -1,15 +1,11 @@
 name: ci
 
 on:
+  # Keep both jobs unconditional so they can be required without leaving
+  # documentation-only pull requests permanently waiting for skipped checks.
   pull_request:
-    paths:
-      - 'infra/**'
-      - '.github/workflows/plan.yml'
   push:
     branches: [main]
-    paths:
-      - 'infra/**'
-      - '.github/workflows/plan.yml'
   workflow_dispatch:
 
 permissions:
